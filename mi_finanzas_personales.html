@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#153e35">
+<title>Mi Finanzas</title>
+<style>
+:root{--bg:#f4f6f4;--card:#fff;--ink:#17211d;--muted:#64716a;--line:#e0e7e2;--green:#176b50;--red:#b42318;--soft:#e8f3ed}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,Segoe UI,sans-serif}
+header{background:#153e35;color:#fff;padding:20px 16px 18px;position:sticky;top:0;z-index:5}
+.head{max-width:760px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}h1{font-size:21px;margin:0}header p{margin:3px 0 0;color:#d4e5dc;font-size:12px}
+main{max-width:760px;margin:auto;padding:14px 12px 92px}.summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.card,.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 2px 8px #102b1a08}
+.k-label{font-size:12px;color:var(--muted)}.amount{font-size:22px;font-weight:750;margin-top:5px;overflow-wrap:anywhere}.good{color:var(--green)}.bad{color:var(--red)}
+nav{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:14px 0}
+nav button{border:1px solid var(--line);background:#fff;border-radius:11px;padding:11px 4px;font-size:12px;color:var(--ink)}
+nav button.active{background:var(--soft);border-color:#9dcab4;color:var(--green);font-weight:700}
+h2{font-size:18px;margin:4px 0 12px}h3{font-size:14px;margin:16px 0 8px}
+label{display:block;font-size:12px;color:var(--muted);margin:0 0 5px}
+input,select{width:100%;padding:12px;border:1px solid #cfd9d2;border-radius:10px;background:#fff;color:var(--ink);font:inherit;min-width:0}
+.field{margin-bottom:12px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button.primary{background:var(--green);color:#fff;border:0;border-radius:11px;padding:12px 14px;font:inherit;font-weight:700;width:100%}
+button.secondary{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit}
+button.danger{color:var(--red);background:#fff;border:1px solid #efc8c4;border-radius:9px;padding:7px 9px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.row+.row{margin-top:10px}
+.item{border-top:1px solid var(--line);padding:12px 0}.item:first-child{border-top:0}
+.item-title{font-weight:650}.sub{font-size:12px;color:var(--muted);margin-top:3px}
+.amount-sm{font-weight:700;white-space:nowrap}.empty{padding:24px 8px;text-align:center;color:var(--muted)}
+.progress{height:8px;background:#e8ece9;border-radius:99px;overflow:hidden;margin:9px 0}.progress span{display:block;height:100%;background:#26815f}
+.notice{padding:10px 12px;background:#edf6f0;border-radius:10px;color:#20523d;font-size:13px;margin:10px 0}.small{font-size:12px;color:var(--muted);line-height:1.45}
+.hidden{display:none!important}.tools{display:flex;gap:8px;flex-wrap:wrap}.tools button{flex:1;min-width:130px}
+.bottom{position:fixed;bottom:0;left:0;right:0;background:#fffffff2;border-top:1px solid var(--line);padding:9px 12px calc(9px + env(safe-area-inset-bottom));font-size:11px;text-align:center;color:var(--muted);backdrop-filter:blur(12px)}
+@media(min-width:600px){.summary{grid-template-columns:repeat(4,minmax(0,1fr))}nav{grid-template-columns:repeat(6,1fr)}main{padding-top:20px}}
+</style>
+</head>
+<body>
+<header><div class="head"><div><h1>Mi Finanzas</h1><p>Control personal · Pesos mexicanos (MXN)</p></div><div aria-hidden="true" style="font-size:26px">₱</div></div></header>
+<main>
+<div class="summary">
+ <div class="card"><div class="k-label">Efectivo calculado</div><div class="amount" id="sumBalance">$0.00</div></div>
+ <div class="card"><div class="k-label">Ingresos del mes</div><div class="amount good" id="sumIncome">$0.00</div></div>
+ <div class="card"><div class="k-label">Gastos del mes</div><div class="amount bad" id="sumExpense">$0.00</div></div>
+ <div class="card"><div class="k-label">Deuda pendiente</div><div class="amount" id="sumDebt">$0.00</div></div>
+</div>
+<nav>
+<button data-tab="home" class="active">Resumen</button><button data-tab="moves">Movimientos</button><button data-tab="budget">Presupuesto</button><button data-tab="debts">Deudas</button><button data-tab="goals">Ahorro</button><button data-tab="forecast">Proyección</button>
+</nav>
+<section id="home" class="panel">
+<h2>Resumen financiero</h2>
+<div class="field"><label for="opening">Saldo inicial al comenzar el control (MXN)</label><input id="opening" type="number" min="0" step=".01" placeholder="Captura tu saldo real"></div>
+<button class="primary" id="saveOpening">Guardar saldo inicial</button>
+<p class="small">El saldo inicial es el dinero con el que empiezas el seguimiento. No lo registres también como ingreso. El saldo calculado se actualiza con tus movimientos registrados.</p>
+<h3>Movimientos recientes</h3><div id="recent"></div>
+<h3>Respaldo y datos</h3>
+<div class="tools"><button class="secondary" id="exportBtn">Exportar respaldo</button><button class="secondary" id="importBtn">Importar respaldo</button><input id="importFile" type="file" accept="application/json,.json" class="hidden"></div>
+<p class="small">Los datos se guardan en este navegador. Exporta un respaldo periódicamente y antes de cambiar de dispositivo o borrar los datos del navegador.</p>
+</section>
+<section id="moves" class="panel hidden">
+<h2>Registrar movimiento</h2>
+<form id="moveForm">
+<div class="grid2"><div class="field"><label for="moveType">Tipo</label><select id="moveType"><option value="gasto">Gasto</option><option value="ingreso">Ingreso</option></select></div><div class="field"><label for="moveDate">Fecha</label><input id="moveDate" type="date" required></div></div>
+<div class="field"><label for="moveAmount">Importe (MXN)</label><input id="moveAmount" type="number" min=".01" step=".01" placeholder="0.00" required></div>
+<div class="field"><label for="moveCategory">Categoría</label><select id="moveCategory"><option>Alimentación</option><option>Vivienda</option><option>Transporte</option><option>Servicios</option><option>Salud</option><option>Entretenimiento</option><option>Nómina</option><option>Ingresos adicionales</option><option>Deudas</option><option>Ahorro</option><option>Otros</option></select></div>
+<div class="field"><label for="moveConcept">Concepto</label><input id="moveConcept" maxlength="100" placeholder="Ej. despensa, nómina, gasolina"></div>
+<button class="primary">Guardar movimiento</button></form>
+<h3>Historial</h3><div id="allMoves"></div>
+</section>
+<section id="budget" class="panel hidden">
+<h2>Presupuesto mensual</h2><form id="budgetForm"><div class="field"><label for="budgetAmount">Límite de gasto mensual (MXN)</label><input id="budgetAmount" type="number" min="0" step=".01" placeholder="Define tu límite"></div><button class="primary">Guardar presupuesto</button></form>
+<div style="margin-top:18px"><div class="row"><span class="k-label">Gasto del mes actual</span><strong id="budgetSpent">$0.00</strong></div><div class="progress"><span id="budgetBar" style="width:0%"></span></div><div class="row"><span class="k-label">Restante / excedido</span><strong id="budgetRemaining">$0.00</strong></div></div>
+<p class="small">El presupuesto compara el total de gastos registrados del mes calendario actual contra tu límite. En esta versión es un límite general, no por categoría.</p>
+</section>
+<section id="debts" class="panel hidden">
+<h2>Deudas</h2><form id="debtForm"><div class="field"><label for="debtName">Tarjeta, préstamo o acreedor</label><input id="debtName" maxlength="80" required placeholder="Nombre de la deuda"></div><div class="grid2"><div class="field"><label for="debtBalance">Saldo pendiente (MXN)</label><input id="debtBalance" type="number" min=".01" step=".01" required></div><div class="field"><label for="debtPayment">Pago mensual previsto (MXN)</label><input id="debtPayment" type="number" min="0" step=".01" value="0"></div></div><button class="primary">Agregar deuda</button></form><h3>Deudas registradas</h3><div id="debtList"></div>
+<p class="small">Aplicar un pago aquí reduce el saldo de deuda, pero no registra por sí mismo la salida de efectivo. Para mantener ambos saldos consistentes, registra el pago también como gasto en Movimientos.</p>
+</section>
+<section id="goals" class="panel hidden">
+<h2>Metas de ahorro</h2><form id="goalForm"><div class="field"><label for="goalName">Nombre de la meta</label><input id="goalName" maxlength="80" required placeholder="Ej. fondo de emergencia"></div><div class="grid2"><div class="field"><label for="goalTarget">Objetivo (MXN)</label><input id="goalTarget" type="number" min=".01" step=".01" required></div><div class="field"><label for="goalSaved">Acumulado (MXN)</label><input id="goalSaved" type="number" min="0" step=".01" value="0" required></div></div><button class="primary">Crear meta</button></form><h3>Tu progreso</h3><div id="goalList"></div>
+<p class="small">El acumulado de metas es informativo y no se resta automáticamente del efectivo. Si apartas dinero de tu saldo, registra la transferencia o salida según tu método de control para no duplicar gastos.</p>
+</section>
+<section id="forecast" class="panel hidden">
+<h2>Proyección hasta el próximo cobro</h2><div class="field"><label for="payDate">Fecha del próximo ingreso</label><input id="payDate" type="date"></div><div class="field"><label for="expectedIncome">Ingreso esperado (MXN)</label><input id="expectedIncome" type="number" min="0" step=".01" placeholder="0.00"></div><div class="field"><label for="pendingCosts">Gastos y pagos pendientes antes de cobrar (MXN)</label><input id="pendingCosts" type="number" min="0" step=".01" placeholder="0.00"></div><div class="card" style="margin-top:14px"><div class="k-label">Saldo proyectado al próximo cobro</div><div class="amount" id="forecastAmount">$0.00</div><div class="small" id="forecastDetail"></div></div><p class="small">Escenario simple: saldo calculado actual + ingreso esperado − gastos pendientes. No incluye movimientos futuros que no hayas capturado ni intereses por venir.</p></section>
+<div id="toast" class="notice hidden" role="status"></div>
+</main>
+<div class="bottom">Tus datos se guardan en este navegador · Exporta respaldos regularmente</div>
+<script>
+const DB_NAME='mi-finanzas-db', DB_VERSION=1;
+let db;
+const state={opening:0,budget:0,movements:[],debts:[],goals:[],forecast:{payDate:'',income:0,costs:0}};
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(Number(n)||0);
+const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+const monthKey=()=>today().slice(0,7);
+function notify(msg){$('toast').textContent=msg;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),3500)}
+function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const d=req.result;for(const s of ['settings','movements','debts','goals'])if(!d.objectStoreNames.contains(s))d.createObjectStore(s,{keyPath:s==='settings'?'key':'id',autoIncrement:s!=='settings'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+function all(store){return new Promise((resolve,reject)=>{const r=db.transaction(store,'readonly').objectStore(store).getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function put(store,value){return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).put(value);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}
+function add(store,value){return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite');const r=tx.objectStore(store).add(value);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function del(store,id){return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).delete(Number(id));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
+async function load(){const settings=await all('settings');for(const x of settings){if(x.key==='opening')state.opening=Number(x.value)||0;if(x.key==='budget')state.budget=Number(x.value)||0;if(x.key==='forecast')state.forecast=x.value||state.forecast}
+state.movements=await all('movements');state.debts=await all('debts');state.goals=await all('goals');
+$('opening').value=state.opening||'';$('budgetAmount').value=state.budget||'';
+$('payDate').value=state.forecast.payDate||'';$('expectedIncome').value=state.forecast.income||'';$('pendingCosts').value=state.forecast.costs||'';
+render()}
+function balance(){return state.opening+state.movements.reduce((s,m)=>s+(m.type==='ingreso'?m.amount:-m.amount),0)}
+function currentMovements(){return state.movements.filter(m=>m.date&&m.date.slice(0,7)===monthKey())}
+function render(){
+const ms=currentMovements(),income=ms.filter(m=>m.type==='ingreso').reduce((s,m)=>s+m.amount,0),expense=ms.filter(m=>m.type==='gasto').reduce((s,m)=>s+m.amount,0);
+$('sumBalance').textContent=money(balance());$('sumBalance').className='amount '+(balance()<0?'bad':'');
+$('sumIncome').textContent=money(income);$('sumExpense').textContent=money(expense);$('sumDebt').textContent=money(state.debts.reduce((s,d)=>s+d.balance,0));
+const moveHTML=(items)=>items.length?items.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.id-a.id).map(m=>`<div class="item"><div class="row"><div style="min-width:0"><div class="item-title">${esc(m.concept||m.category)}</div><div class="sub">${esc(m.date)} · ${esc(m.category)}</div></div><div class="row"><span class="amount-sm ${m.type==='ingreso'?'good':'bad'}">${m.type==='ingreso'?'+':'−'}${money(m.amount)}</span><button class="danger" data-delete-move="${m.id}" aria-label="Eliminar movimiento">×</button></div></div></div>`).join(''):'<div class="empty">Sin movimientos registrados.</div>';
+$('recent').innerHTML=moveHTML(state.movements.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.id-a.id).slice(0,5));
+$('allMoves').innerHTML=moveHTML(state.movements);
+const remaining=state.budget-expense;$('budgetSpent').textContent=money(expense);$('budgetRemaining').textContent=state.budget?money(remaining):'Define un presupuesto';$('budgetRemaining').className=remaining<0?'bad':'';
+$('budgetBar').style.width=(state.budget?Math.min(100,expense/state.budget*100):0)+'%';$('budgetBar').style.background=remaining<0?'#b42318':'#26815f';
+$('debtList').innerHTML=state.debts.length?state.debts.map(d=>`<div class="item"><div class="row"><div><div class="item-title">${esc(d.name)}</div><div class="sub">Pago previsto: ${money(d.payment)} / mes</div><div class="amount">${money(d.balance)}</div></div><div style="display:grid;gap:6px"><button class="secondary" data-pay-debt="${d.id}" ${d.balance<=0||d.payment<=0?'disabled':''}>Aplicar pago</button><button class="danger" data-delete-debt="${d.id}">Eliminar</button></div></div></div>`).join(''):'<div class="empty">No hay deudas registradas.</div>';
+$('goalList').innerHTML=state.goals.length?state.goals.map(g=>{const p=Math.min(100,g.saved/g.target*100);return `<div class="item"><div class="row"><div><div class="item-title">${esc(g.name)}</div><div class="sub">${money(g.saved)} de ${money(g.target)}</div></div><button class="danger" data-delete-goal="${g.id}">Eliminar</button></div><div class="progress"><span style="width:${p}%"></span></div><div class="sub">${p.toFixed(0)}% completado · Restante ${money(g.target-g.saved)}</div><div class="tools" style="margin-top:8px"><button class="secondary" data-add-goal="${g.id}">Añadir ahorro</button></div></div>`}).join(''):'<div class="empty">Crea tu primera meta de ahorro.</div>';
+const f=state.forecast,projected=balance()+(Number(f.income)||0)-(Number(f.costs)||0);$('forecastAmount').textContent=money(projected);$('forecastAmount').className='amount '+(projected<0?'bad':'good');$('forecastDetail').textContent=(f.payDate?'Fecha objetivo: '+f.payDate+'. ':'')+(projected<0?'Faltante estimado: '+money(Math.abs(projected)): 'Importe estimado después de los compromisos capturados.');
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('main section').forEach(x=>x.classList.toggle('hidden',x.id!==b.dataset.tab))}));
+$('moveDate').value=today();
+$('saveOpening').addEventListener('click',async()=>{const n=Number($('opening').value);if(!Number.isFinite(n)||n<0){notify('Captura un saldo inicial válido.');return}state.opening=n;await put('settings',{key:'opening',value:n});render();notify('Saldo inicial guardado.')});
+$('moveForm').addEventListener('submit',async e=>{e.preventDefault();const amount=Number($('moveAmount').value);if(!(amount>0)){notify('El importe debe ser mayor que cero.');return}await add('movements',{type:$('moveType').value,amount,category:$('moveCategory').value,concept:$('moveConcept').value.trim(),date:$('moveDate').value});$('moveAmount').value='';$('moveConcept').value='';await load();notify('Movimiento guardado de forma local.')});
+$('budgetForm').addEventListener('submit',async e=>{e.preventDefault();const n=Number($('budgetAmount').value);if(!Number.isFinite(n)||n<0){notify('Captura un presupuesto válido.');return}state.budget=n;await put('settings',{key:'budget',value:n});render();notify('Presupuesto guardado.')});
+$('debtForm').addEventListener('submit',async e=>{e.preventDefault();const name=$('debtName').value.trim(),balance=Number($('debtBalance').value),payment=Number($('debtPayment').value)||0;if(!name||!(balance>0)||payment<0){notify('Revisa los datos de la deuda.');return}await add('debts',{name,balance,payment});$('debtForm').reset();$('debtPayment').value='0';await load();notify('Deuda guardada.')});
+$('goalForm').addEventListener('submit',async e=>{e.preventDefault();const name=$('goalName').value.trim(),target=Number($('goalTarget').value),saved=Number($('goalSaved').value);if(!name||!(target>0)||saved<0||saved>target){notify('Revisa el objetivo y el ahorro acumulado.');return}await add('goals',{name,target,saved});$('goalForm').reset();$('goalSaved').value='0';await load();notify('Meta guardada.')});
+['payDate','expectedIncome','pendingCosts'].forEach(id=>$(id).addEventListener('change',async()=>{state.forecast={payDate:$('payDate').value,income:Math.max(0,Number($('expectedIncome').value)||0),costs:Math.max(0,Number($('pendingCosts').value)||0)};await put('settings',{key:'forecast',value:state.forecast});render()}));
+document.addEventListener('click',async e=>{const t=e.target.closest('button');if(!t)return;
+if(t.dataset.deleteMove){if(confirm('¿Eliminar este movimiento?')){await del('movements',t.dataset.deleteMove);await load();notify('Movimiento eliminado.')}} 
+if(t.dataset.deleteDebt){if(confirm('¿Eliminar esta deuda del registro?')){await del('debts',t.dataset.deleteDebt);await load();notify('Deuda eliminada.')}} 
+if(t.dataset.payDebt){const d=state.debts.find(x=>x.id===Number(t.dataset.payDebt));if(d){const p=Math.min(d.balance,d.payment);if(p>0&&confirm('Se descontarán '+money(p)+' del saldo de esta deuda. ¿Continuar?')){await put('debts',{...d,balance:Math.max(0,d.balance-p)});await load();notify('Saldo de deuda actualizado. Registra también el pago como gasto.')}}}
+if(t.dataset.deleteGoal){if(confirm('¿Eliminar esta meta?')){await del('goals',t.dataset.deleteGoal);await load();notify('Meta eliminada.')}} 
+if(t.dataset.addGoal){const g=state.goals.find(x=>x.id===Number(t.dataset.addGoal));if(g){const raw=prompt('¿Cuánto quieres añadir a '+g.name+'? (MXN)','100');if(raw!==null){const n=Number(raw);if(n>0){await put('goals',{...g,saved:Math.min(g.target,g.saved+n)});await load();notify('Meta actualizada.')}}}}
+});
+$('exportBtn').addEventListener('click',async()=>{const data={app:'Mi Finanzas',version:1,exportedAt:new Date().toISOString(),settings:await all('settings'),movements:await all('movements'),debts:await all('debts'),goals:await all('goals')};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='respaldo-mi-finanzas-'+today()+'.json';a.click();URL.revokeObjectURL(url);notify('Respaldo preparado para descargar.')});
+$('importBtn').addEventListener('click',()=>$('importFile').click());
+$('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(data.app!=='Mi Finanzas'||!Array.isArray(data.movements)||!Array.isArray(data.settings)||!Array.isArray(data.debts)||!Array.isArray(data.goals))throw Error('Formato no válido');if(!confirm('La importación reemplazará los datos actuales de esta app. Exporta un respaldo antes de continuar. ¿Importar?'))return;const tx=db.transaction(['settings','movements','debts','goals'],'readwrite');for(const s of ['settings','movements','debts','goals'])tx.objectStore(s).clear();for(const x of data.settings)tx.objectStore('settings').put(x);for(const x of data.movements){const y={...x};delete y.id;tx.objectStore('movements').add(y)}for(const x of data.debts){const y={...x};delete y.id;tx.objectStore('debts').add(y)}for(const x of data.goals){const y={...x};delete y.id;tx.objectStore('goals').add(y)}tx.oncomplete=async()=>{await load();notify('Respaldo importado correctamente.')};tx.onerror=()=>notify('No se pudo importar el respaldo.')}catch(err){notify('Archivo inválido o incompatible.')}finally{e.target.value=''}});
+(async()=>{try{if(!('indexedDB'in window))throw Error('IndexedDB no disponible');db=await openDB();await load()}catch(e){notify('No fue posible abrir el almacenamiento local en este contexto. Prueba con un navegador compatible y HTTPS o localhost.')}})();
+</script>
+</body>
+</html>
